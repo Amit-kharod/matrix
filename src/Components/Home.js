@@ -19,17 +19,16 @@ const Home = () => {
   const [failModal, setFailModal] = useState(false);
 
   const congoHandler = () => {
-    console.log('hello')
-    setCongoModal(false)
+    console.log("hello");
+    setCongoModal(false);
   };
 
   const failedHandler = () => {
-    setFailModal(false)
+    setFailModal(false);
   };
-  
 
   return (
-    <div className="flex w-full ">
+    <>
       <LevelDialog
         title="🎉 Congratulations"
         open={congoModal}
@@ -48,34 +47,39 @@ const Home = () => {
       >
         You have crashed to an obstacle
       </LevelDialog>
-      <div className="w-1/2">
-        <BlocklyComponent
-          readOnly={false}
-          trashcan={true}
-          media={"media/"}
-          move={{
-            scrollbars: true,
-            drag: true,
-            wheel: true,
-          }}
-          robotPositionRef={robotPositionRef}
-          robotPosition={robotPosition}
-          setRobotPosition={setRobotPosition}
-        >
-          <Block type="turn_block" />
-          <Block type="move_block" />
-        </BlocklyComponent>
-      </div>
-      <div className="w-1/2 bg-gray-900 canvas">
-        {/* <ThreeDMatrix
+      <div className="flex w-full ">
+        <div className="w-1/2">
+          <BlocklyComponent
+            readOnly={false}
+            trashcan={true}
+            media={"media/"}
+            move={{
+              scrollbars: true,
+              drag: true,
+              wheel: true,
+            }}
+            robotPositionRef={robotPositionRef}
+            robotPosition={robotPosition}
+            setRobotPosition={setRobotPosition}
+          >
+            <Block type="turn_block" />
+            <Block type="move_block" />
+          </BlocklyComponent>
+        </div>
+        <div className="w-1/2 bg-gray-900 canvas">
+          {/* <ThreeDMatrix
           {...gamesConfig.gameConfigOne}
           robotPositionRef={robotPositionRef}
           robotPosition={robotPosition}
           setRobotPosition={setRobotPosition}
         /> */}
-        <RobotCanvas setCongoModal={setCongoModal} setFailModal={setFailModal}/>
+          <RobotCanvas
+            setCongoModal={setCongoModal}
+            setFailModal={setFailModal}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

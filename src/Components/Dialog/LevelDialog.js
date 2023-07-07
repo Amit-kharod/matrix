@@ -1,31 +1,44 @@
-import React from "react";
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
+import * as React from 'react';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Modal from '@mui/material/Modal';
 
-const LevelDialog = (props) => {
-  const { title, children, open, setOpen, onConfirm, buttonText } = props;
-  return (
-    <Dialog
-      open={open}
-      onClose={() => setOpen(false)}
-      aria-labelledby="confirm-dialog"
-    >
-      <DialogTitle id="confirm-dialog">{title}</DialogTitle>
-      <DialogContent>{children}</DialogContent>
-      <DialogActions>
-        <Button
-          variant="contained"
-          onClick={() => onConfirm()}
-          color="secondary"
-        >
-          {buttonText}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
+const style = {
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 400,
+  bgcolor: 'background.paper',
+  border: '2px solid #000',
+  boxShadow: 24,
+  p: 4,
 };
 
-export default LevelDialog;
+export default function LevelDialog({ title, children, open, setOpen, onConfirm, buttonText }) {
+
+  return (
+    <div>
+      <Button onClick={() => setOpen(true)}>Open modal</Button>
+      <Modal
+        open={open}
+        onClose={setOpen}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            {title}
+          </Typography>
+          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
+            {children}
+          </Typography>
+          <Button variant="contained" onClick={onConfirm}>
+            {buttonText}
+          </Button>
+        </Box>
+      </Modal>
+    </div>
+  );
+}
