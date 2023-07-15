@@ -20,7 +20,6 @@ export default function LevelDialog({ title, children, open, setOpen, onConfirm,
 
   return (
     <div>
-      <Button onClick={() => setOpen(true)}>Open modal</Button>
       <Modal
         open={open}
         onClose={setOpen}

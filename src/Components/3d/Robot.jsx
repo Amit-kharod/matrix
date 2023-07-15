@@ -11,9 +11,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { useGLTF, useAnimations } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { current } from "@reduxjs/toolkit";
+import radiansToDegree from "../../utils/radiansToDegree";
 
 export function Robot(props) {
   const group = useRef();
+  const { gl } = useThree();
   const { nodes, materials, animations } = useGLTF("./assets/robot/scene.gltf");
   const faces = ["forward", "left", "backward", "right"];
   const { actions, names } = useAnimations(animations, group);
@@ -29,20 +31,52 @@ export function Robot(props) {
   const [faceIndex, setFaceIndex] = useState(0);
   const [face, setFace] = useState(faces[faceIndex]);
   const [result, setResult] = useState(null);
-  const stepDistance = 0.01;
+  const stepDistance = 0.02;
+  const camAnimationTime = 5;
 
   useEffect(() => {
+    if (props.directions.length === 0) {
+      setFaceIndex(0);
+      setPosition({
+        ...position,
+        x: props.robotConfig.robotPos[0],
+        z: props.robotConfig.robotPos[1],
+      });
+      setCurrentIndex(0);
+      group.current.position.x = props.robotConfig.robotPos[0];
+      group.current.position.z = props.robotConfig.robotPos[1];
+    }
     setFace(faces[faceIndex]);
     if (faceIndex === 0) setRotation(2 * (Math.PI / 2));
     else if (faceIndex === 1) setRotation(3 * (Math.PI / 2));
     else if (faceIndex === 2) setRotation(0 * (Math.PI / 2));
     else if (faceIndex === 3) setRotation(1 * (Math.PI / 2));
 
-    console.log(isWalking);
     if (isWalking) {
       actions["Take 001"].play();
+      props.setCameraType("sideFollow");
+      props.setCamAnimation({
+        from: [
+          props.cameraRef.current.position.x,
+          props.cameraRef.current.position.y,
+          props.cameraRef.current.position.z,
+        ],
+        to: props.cameraTypes.sideFollow,
+      });
+      if (currentIndex === 0) {
+        props.setIsCamAnimating("true");
+      }
+      console.log(props.cameraTypes.sideFollow);
     } else {
       actions["Take 001"].play();
+      props.setCamAnimation({
+        ...props.camAnimation,
+        from: [
+          props.cameraRef.current.position.x,
+          props.cameraRef.current.position.y,
+          props.cameraRef.current.position.z,
+        ],
+      });
     }
     console.log(currentAnimation);
     if (result === "win") {
@@ -50,190 +84,261 @@ export function Robot(props) {
     } else if (result === "loss") {
       props.setFailModal(true);
     }
-  }, [isWalking, faceIndex]);
+  }, [isWalking, faceIndex, props.directions, props.cameraType]);
 
-  const levelCompleteHandler = () => {};
+  console.log(props.isCamAnimating);
+  console.log(props.camAnimation);
+  console.log(props.cameraType);
+  console.log(props.cameraRef.current?.position.x);
+  let camPrevPos = props.camAnimation.from;
+  let camNextPos = props.camAnimation.to;
 
-  const gameOverHandler = () => {};
+  useFrame(({ clock, camera }) => {
+    if (props.cameraType === "topRotate") {
+      let current = props.orbitRef.current.getAzimuthalAngle();
+      props.orbitRef.current.setAzimuthalAngle(current + 0.01);
+      console.log(current + 0.01);
+      console.log(radiansToDegree(0.01));
+      props.orbitRef.current.update();
+    }
+    console.log(props.orbitRef.current.getAzimuthalAngle());
+    if (props.isCamAnimating) {
+      //animating x position
+      if (camNextPos[0] - camPrevPos[0] >= 0) {
+        if (props.cameraRef.current.position.x <= camNextPos[0]) {
+          props.cameraRef.current.position.x +=
+            (camNextPos[0] - camPrevPos[0]) / 200;
+        } else {
+          props.setIsCamAnimating(false);
+        }
+      } else {
+        if (props.cameraRef.current.position.x >= camNextPos[0]) {
+          props.cameraRef.current.position.x +=
+            (camNextPos[0] - camPrevPos[0]) / 200;
+        } else {
+          props.setIsCamAnimating(false);
+        }
+      }
+      //animating y position
+      if (camNextPos[1] - camPrevPos[1] >= 0) {
+        if (props.cameraRef.current.position.y <= camNextPos[1]) {
+          props.cameraRef.current.position.y +=
+            (camNextPos[1] - camPrevPos[1]) / 200;
+        }
+      } else {
+        if (props.cameraRef.current.position.y >= camNextPos[1]) {
+          props.cameraRef.current.position.y +=
+            (camNextPos[1] - camPrevPos[1]) / 200;
+        }
+      }
 
-  useFrame(() => {
+      //animating z position
+      if (camNextPos[2] - camPrevPos[2] >= 0) {
+        if (props.cameraRef.current.position.z <= camNextPos[2]) {
+          props.cameraRef.current.position.z +=
+            (camNextPos[2] - camPrevPos[2]) / 200;
+        }
+      } else {
+        if (props.cameraRef.current.position.z >= camNextPos[2]) {
+          props.cameraRef.current.position.z +=
+            (camNextPos[2] - camPrevPos[2]) / 200;
+        }
+      }
+    }
+
+    // camera.position.x += 0.01;
+
     const mesh = group.current;
+    // console.log("**Position**");
+    // console.log(mesh.position.x);
+    // console.log(mesh.position.y);
+    // console.log(mesh.position.z);
+    // console.log("**Rotation**");
+    // console.log(mesh.rotation.x);
+    // console.log(mesh.rotation.y);
+    // console.log(mesh.rotation.z);
     let direction;
-
     // goal detection
     if (props.goal[0] === position.x && props.goal[1] === position.z) {
       setCurrentIndex(10);
       setResult("win");
     }
-
+    // props.setCameraPos((prevPos) => {
+    //   return [prevPos[0] + stepDistance, prevPos[1], prevPos[2]];
+    // });
     if (currentIndex <= props.directions.length - 1) {
       setIsWalking(true);
-      direction = props.directions[currentIndex];
-      if (direction === "LEFT") {
-        mesh.rotation.y += stepDistance;
-        if (mesh.rotation.y > rotation + Math.PI / 2) {
-          setCurrentIndex((prevIndex) => prevIndex + 1);
-          setFaceIndex((prevIndex) => {
-            if (prevIndex + 1 > 3) {
-              return 0;
-            }
-            return prevIndex + 1;
-          });
-          setRotation((prevRotation) => prevRotation + Math.PI / 2);
-        }
-        console.log(mesh.rotation.y);
-        console.log(rotation);
-      } else if (direction === "RIGHT") {
-        mesh.rotation.y -= stepDistance;
-        if (mesh.rotation.y < rotation - Math.PI / 2) {
-          setCurrentIndex((prevIndex) => prevIndex + 1);
-          setFaceIndex((prevIndex) => {
-            if (prevIndex - 1 < 0) {
-              return 3;
-            }
-            return prevIndex - 1;
-          });
-          setRotation((prevRotation) => prevRotation - Math.PI / 2);
-        }
-        console.log(mesh.rotation.y);
-        console.log(rotation);
-      } else if (direction === "FORWARD") {
-        console.log(face);
-        switch (face) {
-          case "forward":
-            // obstacle detection
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x && item[1] === position.z - 1
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            // animating robot
-            mesh.position.z -= stepDistance;
-            if (mesh.position.z < position.z - 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, z: position.z - 1 });
-            }
-            break;
-          case "left":
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x - 1 && item[1] === position.z
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            mesh.position.x -= stepDistance;
-            if (mesh.position.x < position.x - 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, x: position.x - 1 });
-            }
-            break;
-          case "backward":
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x && item[1] === position.z + 1
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            console.log(
-              props.obstacles.some(
-                (item) => item[0] === position.x && item[1] === position.z + 1
-              )
-            );
-            mesh.position.z += stepDistance;
-            if (mesh.position.z > position.z + 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, z: position.z + 1 });
-            }
-            break;
-          case "right":
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x + 1 && item[1] === position.z
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            mesh.position.x += stepDistance;
-            if (mesh.position.x > position.x + 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, x: position.x + 1 });
-            }
-            break;
-        }
+      if (!props.isCamAnimating) {
+        direction = props.directions[currentIndex];
+        if (direction === "LEFT") {
+          console.log(mesh.rotation.y);
+          mesh.rotation.y += stepDistance;
+          // let current = props.orbitRef.current.getAzimuthalAngle();
+          // props.orbitRef.current.setAzimuthalAngle(current + stepDistance);
+          // props.orbitRef.current.update();
+          props.cameraRef.current.position.x -= stepDistance;
+          if (mesh.rotation.y > rotation + Math.PI / 2) {
+            setCurrentIndex((prevIndex) => prevIndex + 1);
+            setFaceIndex((prevIndex) => {
+              if (prevIndex + 1 > 3) {
+                return 0;
+              }
+              return prevIndex + 1;
+            });
+            setRotation((prevRotation) => prevRotation + Math.PI / 2);
+          }
+          // console.log(rotation);
+        } else if (direction === "RIGHT") {
+          mesh.rotation.y -= stepDistance;
+          if (mesh.rotation.y < rotation - Math.PI / 2) {
+            setCurrentIndex((prevIndex) => prevIndex + 1);
+            setFaceIndex((prevIndex) => {
+              if (prevIndex - 1 < 0) {
+                return 3;
+              }
+              return prevIndex - 1;
+            });
+            setRotation((prevRotation) => prevRotation - Math.PI / 2);
+          }
+          console.log(mesh.rotation.y);
+          console.log(rotation);
+        } else if (direction === "FORWARD") {
+          console.log(face);
+          switch (face) {
+            case "forward":
+              // obstacle detection
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x && item[1] === position.z - 1
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              // animating robot
+              mesh.position.z -= stepDistance;
+              if (mesh.position.z < position.z - 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, z: position.z - 1 });
+              }
+              break;
+            case "left":
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x - 1 && item[1] === position.z
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              mesh.position.x -= stepDistance;
+              if (mesh.position.x < position.x - 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, x: position.x - 1 });
+              }
+              break;
+            case "backward":
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x && item[1] === position.z + 1
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              console.log(
+                props.obstacles.some(
+                  (item) => item[0] === position.x && item[1] === position.z + 1
+                )
+              );
+              mesh.position.z += stepDistance;
+              if (mesh.position.z > position.z + 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, z: position.z + 1 });
+              }
+              break;
+            case "right":
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x + 1 && item[1] === position.z
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              mesh.position.x += stepDistance;
+              if (mesh.position.x > position.x + 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, x: position.x + 1 });
+              }
+              break;
+          }
 
-        console.log(mesh.position.z);
-      } else if (direction === "BACKWARD") {
-        console.log(face);
-        switch (face) {
-          case "forward":
-            // obstacle detection
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x && item[1] === position.z + 1
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            mesh.position.z += stepDistance;
-            if (mesh.position.z > position.z + 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, z: position.z + 1 });
-            }
-            break;
-          case "left":
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x + 1 && item[1] === position.z
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            mesh.position.x += stepDistance;
-            if (mesh.position.x > position.x + 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, x: position.x + 1 });
-            }
-            break;
-          case "backward":
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x && item[1] === position.z - 1
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            mesh.position.z -= stepDistance;
-            if (mesh.position.z < position.z - 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, z: position.z - 1 });
-            }
-            break;
-          case "right":
-            if (
-              props.obstacles.some(
-                (item) => item[0] === position.x - 1 && item[1] === position.z
-              )
-            ) {
-              setResult("loss");
-              setCurrentIndex(10);
-            }
-            mesh.position.x -= stepDistance;
-            if (mesh.position.x < position.x - 1) {
-              setCurrentIndex((prevIndex) => prevIndex + 1);
-              setPosition({ ...position, x: position.x - 1 });
-            }
-            break;
+          console.log(mesh.position.z);
+        } else if (direction === "BACKWARD") {
+          console.log(face);
+          switch (face) {
+            case "forward":
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x && item[1] === position.z + 1
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              mesh.position.z += stepDistance;
+              if (mesh.position.z > position.z + 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, z: position.z + 1 });
+              }
+              break;
+            case "left":
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x + 1 && item[1] === position.z
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              mesh.position.x += stepDistance;
+              if (mesh.position.x > position.x + 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, x: position.x + 1 });
+              }
+              break;
+            case "backward":
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x && item[1] === position.z - 1
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              mesh.position.z -= stepDistance;
+              if (mesh.position.z < position.z - 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, z: position.z - 1 });
+              }
+              break;
+            case "right":
+              if (
+                props.obstacles.some(
+                  (item) => item[0] === position.x - 1 && item[1] === position.z
+                )
+              ) {
+                setResult("loss");
+                setCurrentIndex(10);
+              }
+              mesh.position.x -= stepDistance;
+              if (mesh.position.x < position.x - 1) {
+                setCurrentIndex((prevIndex) => prevIndex + 1);
+                setPosition({ ...position, x: position.x - 1 });
+              }
+              break;
+          }
         }
       }
     } else {
@@ -248,8 +353,12 @@ export function Robot(props) {
   return (
     <group
       ref={group}
-      position={[0, -0.02, 0]}
-      scale={0.5}
+      position={[
+        props.robotConfig.robotPos[0],
+        -0.02,
+        props.robotConfig.robotPos[1],
+      ]}
+      scale={0.4}
       rotation={[0, rotation, 0]}
       dispose={null}
     >

@@ -2,10 +2,12 @@ import React, { useState, useRef, Suspense, useEffect } from "react";
 import BlocklyComponent, { Block } from "../Blockly";
 import "../blocks/customblocks";
 import "../generator/generator";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import ThreeDMatrix from "./ThreeDMatrix";
 import { RobotCanvas } from "./3d/RobotCanvas";
 import LevelDialog from "./Dialog/LevelDialog";
+import { addBlockInstruction } from "../utils/blocklyInstructionSlice";
+
 //import ThreeDRobot from "./threeDRobot";
 
 const Home = () => {
@@ -15,8 +17,16 @@ const Home = () => {
     gamesConfig.gameConfigOne.robotStartPosition
   );
 
+  const [robotConfig, setRobotConfig] = useState({
+    facing: "forward",
+    robotPos: [0, 0],
+  });
+
   const [congoModal, setCongoModal] = useState(false);
   const [failModal, setFailModal] = useState(false);
+  const [isFullscreen, fullscreen] = useState(true);
+
+  const dispatch = useDispatch();
 
   const congoHandler = () => {
     console.log("hello");
@@ -25,6 +35,15 @@ const Home = () => {
 
   const failedHandler = () => {
     setFailModal(false);
+  };
+
+  const resetRobotHandler = () => {
+    setRobotConfig({ ...robotConfig, robotPos: [0, 0] });
+    dispatch(addBlockInstruction([]));
+  };
+
+  const startButtonHandler = () => {
+    fullscreen(false);
   };
 
   return (
@@ -66,16 +85,26 @@ const Home = () => {
             <Block type="move_block" />
           </BlocklyComponent>
         </div>
-        <div className="w-1/2 bg-gray-900 canvas">
+
+        <div className={`w-1/2 canvas`}>
           {/* <ThreeDMatrix
           {...gamesConfig.gameConfigOne}
           robotPositionRef={robotPositionRef}
           robotPosition={robotPosition}
           setRobotPosition={setRobotPosition}
         /> */}
+          <button
+            onClick={resetRobotHandler}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded z-20"
+          >
+            Reset
+          </button>
           <RobotCanvas
             setCongoModal={setCongoModal}
             setFailModal={setFailModal}
+            robotConfig={robotConfig}
+            isFullscreen={isFullscreen}
+            fullscreen={fullscreen}
           />
         </div>
       </div>
